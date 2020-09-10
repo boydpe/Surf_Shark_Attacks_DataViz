@@ -1,0 +1,100 @@
+---
+title: "Shark Attacks on Surfers: EDA"
+author: "Peter Boyd"
+date: "May 26, 2019"
+output: pdf_document
+---
+
+# Introduction
+
+As someone who enjoys surfing on the Oregon coast, I was interested in shark attacks that happen around the globe, specifically attacks on surfers. 
+
+The data set I found contains information about shark attacks around the world and can be downloaded from Kaggle (https://www.kaggle.com/teajay/global-shark-attacks#attacks.csv).  The data is downloaded as a .csv containing 22 columns and 6302 rows. Each row is an attack, and the columns of interest include date, type of attack, location, activity when attacked, name of victim, sex of victim, age of victim, injury, fatal or not fatal, species of shark. 
+
+I chose to focus my project on surfing related attacks only, so after subsetting the data, we have 976 observations to work with. I found many of the columns to be rather messy, which further limited some analyses. Columns that are inherently "character" related (Name, Injury, Species, etc) offered a great deal of variability that would make analysis rather exhausting. Consequently, much of my work thus far has focused on Date, Fatal/Not Fatal attacks, Age, and Location. 
+
+A further complication was introduced by the lack of geographical coordinates. I had hoped to more cleanly map incidents around the world, but without provided coordinates, I would need to find a concise way of obtaining the coordintes from the internet for hundreds of beaches, which seemed impractical. I'd like to spend more time tweaking the location aspects of the data to allow for some map visualizations. 
+
+On this assignement, I spent roughly 1 hour on a different data set that I abandoned, 3 hours with data manipulation/idea formluation/basic plots, 4 hours with more advance plotting and new ideas, 2 hours polishing and some extra ideas, and 2 hours compiling/writing. 
+
+Ultmiately, after investigating many variables and manipulations, I was surprised and intrigued by the following three analyses. 
+
+# Visualization One: Age of Surfers
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=7, fig.height=3}
+library(tidyverse)
+library(maps)
+world <- map_data('world')
+usa <- map_data('usa')
+states <- map_data('state')
+shark <- read_csv("~/OSU/Year2/Spring/ST_537/Data/attacks.csv")
+shark <- shark[1:6302,] 
+shark <- shark %>% rename(Fatal = `Fatal (Y/N)`)
+shark$Beach <- gsub(",.*","",shark$Location)
+surf <- shark %>% filter(Activity == "Surfing") 
+
+surf$Age2 <- as.integer(surf$Age)
+surf %>% filter(!is.na(Age2)) %>% 
+  filter(Year > 1959) %>% 
+  group_by(Year) %>% 
+  summarise(n = n(),
+          min = min(Age2, na.rm = TRUE), 
+          max = max(Age2, na.rm = TRUE),
+          q25 = quantile(Age2, probs = 0.25, na.rm = TRUE),
+          q50 = quantile(Age2, probs = 0.5, na.rm = TRUE),
+          q75 = quantile(Age2, probs = 0.75, na.rm = TRUE)) %>% 
+  ggplot(aes(Year, q50)) + 
+    geom_ribbon(aes(ymin = q25, ymax = q75), fill = "grey70") + 
+    geom_point() + 
+    geom_line() + 
+    #geom_line(aes(x = Year, y = min), color = "blue") + 
+    #geom_line(aes(x = Year, y = max), color = "red") + 
+    ylab("Age") + 
+    #scale_colour_manual(c("min", "med", "max")=c("red","green","blue")) + 
+    labs(title = "Age range of shark attack surfing victims has increased", 
+         subtitle = "Median Age with 25th to 75th percentiles")
+
+```
+
+In the image above, we see median surfer's age of shark attack victims plotted for each year from 1960 - 2017. What I found interesting was the increase in variability by including a ribbon capturing the $25^{th}$ and $75^{th}$ percentiles. This may imply that the age of surfers in general has greater variability now than it did a few decades ago. 
+
+
+# Visualization Two: 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=7, fig.height=3}
+surf_beach <- surf %>% filter(!is.na(Beach)) %>% 
+       group_by(Beach, Country) %>% summarise(n = n()) %>% 
+  filter(n > 5) %>% arrange(desc(n))  
+
+ggplot(data = surf_beach, aes(x = reorder(Beach, n), y = n, fill = Country)) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_manual("legend", values = c("BRAZIL" = "#56B4E9",  
+                                         "SOUTH AFRICA" = "#009E73",
+                                         "USA" = "#E69F00")) + 
+  ylab("Number of Shark Attacks") + 
+  xlab("Beach") + 
+  labs(title = "America has many of the world's 10 most \n dangerous beaches for shark attacks") + 
+  coord_flip() 
+```
+
+I was surprised by this visualization because I anticipated beaches in Australia to be more dangerous and an overall less dominant presence from American beaches. 
+
+# Visualization Three: 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=7}
+surf %>% filter(!is.na(Fatal)) %>% group_by(Country) %>% 
+  summarise(n = n(), prop_fatal = sum(Fatal == "Y")/ n) %>%
+  filter(prop_fatal > 0) %>% 
+  ggplot(aes(x = reorder(Country, prop_fatal), y = prop_fatal, fill = n)) + 
+  geom_bar(stat = 'identity') + 
+  geom_text(aes(label = n), hjust = 0) + 
+  xlab("Country") + 
+  ylab("Proportion of Attacks that are Fatal") +
+  labs(title = "Fatal attacks are less likely in countries with more attacks", 
+       subtitle = "Shown with number of attacks")+ 
+  coord_flip()
+```
+
+This visualization was interesting because it shows that many of the countires with very few attacks had high proportions of attacks that were in fact fatal. Meanwhile, the country with the most attacks (the US) had the lowest proportion of fatal attacks. 
+
+
