@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 # Introduction
-
+ 
 As someone who enjoys surfing on the Oregon coast, I was interested in shark attacks that happen around the globe, specifically attacks on surfers. 
 
 The data set I found contains information about shark attacks around the world and can be downloaded from Kaggle (https://www.kaggle.com/teajay/global-shark-attacks#attacks.csv).  The data is downloaded as a .csv containing 22 columns and 6302 rows. Each row is an attack, and the columns of interest include date, type of attack, location, activity when attacked, name of victim, sex of victim, age of victim, injury, fatal or not fatal, species of shark. 
